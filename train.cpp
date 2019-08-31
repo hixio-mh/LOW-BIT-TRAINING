@@ -76,6 +76,9 @@ int main(int argc, char const *argv[])
     float * wg = (float*)malloc(580600*4);
     float * label = (float*)&data[7039602];
     float * res = (float*)&wg[579320];    
+    float * temp_input = (float*)malloc(184320*4);  
+    float * temp_weight = (float*)malloc(288000*4);  
+    float * temp_bias = (float*)malloc(100*4);  
 
     int params[layer_num][16];
     int offset[layer_num][10];
@@ -229,10 +232,10 @@ int main(int argc, char const *argv[])
      			{
 					if(TEST_MODE){
 						for (int e = 0; e<3; e++)
-							training( data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay);
+							training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_input, temp_weight, temp_bias);
 					}
 					else
-						training( data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay);
+						training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_input, temp_weight, temp_bias);
 
      				float loss = 0;     
 

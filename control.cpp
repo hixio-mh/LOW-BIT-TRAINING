@@ -4,7 +4,7 @@
 
 #define layer_num 8
 
-void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate, int epoch, int decay)
+void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate, int epoch, int decay, float *temp_input, float *temp_weight, float *temp_bias)
 {
     int params[layer_num][16];
     int offset[layer_num][10];
@@ -24,14 +24,15 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
        switch(params[j][10])
        {
        		case 0:
+       			
 				if(CONV_FORWARD){
 					printf("conv_input_q : ");
-					quantize(data+offset[j][0], params[j][0]*params[j][4]*params[j][5]*img_num, &sparams[j][0], false);
+					quantize_forward(data+offset[j][0], temp_input, params[j][0]*params[j][4]*params[j][5]*img_num, &sparams[j][0], false);
 				}
 
 				if(CONV_WEIGHT){
 					printf("conv_weight_q : ");
-					quantize(data+offset[j][1], params[j][0]*params[j][1]*params[j][8]*params[j][8], &sparams[j][4], false);
+					quantize_forward(data+offset[j][1], temp_weight, params[j][0]*params[j][1]*params[j][8]*params[j][8], &sparams[j][4], false);
 				}
 
              	if(SHOW_CONV_IN) 
@@ -44,14 +45,16 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 		printf("\n"); 
                 	}
               	}
-
-    	        conv(data+offset[j][0], data+offset[j][1], tmp, data+offset[j][4], params[j], sparams[j]);
+				if(CONV_FORWARD && CONV_WEIGHT)
+    	        	conv(temp_input, temp_weight, tmp, data+offset[j][4], params[j], sparams[j]);
+    	        else
+    	        	conv(data+offset[j][0], data+offset[j][1], tmp, data+offset[j][4], params[j], sparams[j]);
                	break;
 
        		case 1: 
 			   	if(BATCH_FORWARD){
 					printf("batch_input_q : ");
-					quantize(data+offset[j][0], params[j][0]*params[j][4]*params[j][5]*img_num, &sparams[j][0], false);
+					quantize_forward(data+offset[j][0], temp_input, params[j][0]*params[j][4]*params[j][5]*img_num, &sparams[j][0], false);
 				}
 
 				if(SHOW_BATCH_IN)
@@ -64,24 +67,26 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 		printf("\n");
 					}
 				}
-
-    	        batch(data+offset[j][0], wg+offset[j][1], data+offset[j][4], params[j], sparams[j]);
+				if(BATCH_FORWARD)
+    	        	batch(temp_input, wg+offset[j][1], data+offset[j][4], params[j], sparams[j]);
+    	        else
+    	        	batch(data+offset[j][0], wg+offset[j][1], data+offset[j][4], params[j], sparams[j]);
     	        break;
 
        		case 2:  
 			   	if(SCALE_FORWARD){
 					printf("scale_input_q : ");
-					quantize(data+offset[j][0], params[j][0]*params[j][4]*params[j][5]*img_num, &sparams[j][0], false);
+					quantize_forward(data+offset[j][0], temp_input, params[j][0]*params[j][4]*params[j][5]*img_num, &sparams[j][0], false);
 				}
 
 			   	if(SCALE_WEIGHT){
 					printf("scale_weight_q : ");
-					quantize(data+offset[j][1], params[j][1], &sparams[j][4], false);
+					quantize_forward(data+offset[j][1], temp_weight, params[j][1], &sparams[j][4], false);
 				}
 
 			   	if(SCALE_BIAS){
 					printf("scale_bias_q : "); 
-					quantize(data+offset[j][3], params[j][1], &sparams[j][5], false);
+					quantize_forward(data+offset[j][3], temp_bias, params[j][1], &sparams[j][5], false);
 				}
 
               	if(SHOW_SCALE_IN) 
@@ -94,8 +99,10 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 		printf("\n"); 
         			}
 				}
-
-    	        scale(data+offset[j][0], data+offset[j][1], data+offset[j][3], data+offset[j][4], params[j], sparams[j]);
+				if(SCALE_FORWARD && SCALE_WEIGHT && SCALE_BIAS)
+    	        	scale(temp_input, temp_weight, temp_bias, data+offset[j][4], params[j], sparams[j]);
+    	    	else
+    	    		scale(data+offset[j][0], data+offset[j][1], data+offset[j][3], data+offset[j][4], params[j], sparams[j]);
     	        break;
 
        		case 3:  
@@ -137,7 +144,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 						printf("fc1_input_q : ");
 					else
 						printf("fc2_input_q : ");
-					quantize(data+offset[j][0], params[j][0]*params[j][4]*params[j][5]*img_num, &sparams[j][0], false);
+					quantize_forward(data+offset[j][0], temp_input, params[j][0]*params[j][4]*params[j][5]*img_num, &sparams[j][0], false);
 				}
 
 			   	if(FULL_WEIGHT){
@@ -145,7 +152,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 						printf("fc1_weight_q : ");
 					else
 						printf("fc2_weight_q : ");
-					quantize(data+offset[j][1], params[j][0]*params[j][1]*params[j][4]*params[j][5], &sparams[j][4], false);
+					quantize_forward(data+offset[j][1], temp_weight, params[j][0]*params[j][1]*params[j][4]*params[j][5], &sparams[j][4], false);
 				}
 
 			   	if(FULL_BIAS){
@@ -153,7 +160,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 						printf("fc1_bias_q : ");
 					else
 						printf("fc2_bias_q : ");
-					quantize(data+offset[j][3], params[j][1], &sparams[j][5], false);
+					quantize_forward(data+offset[j][3], temp_bias, params[j][1], &sparams[j][5], false);
 				}
 
               	if(SHOW_FULL_IN) 
@@ -174,8 +181,10 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 							printf(" %f", (float)(*(data+offset[j][0]+(y*img_num)))); 
 					}
 				} 
-
-    	        fc(data+offset[j][0], data+offset[j][1], data+offset[j][3], data+offset[j][4], params[j], sparams[j]);
+				if(FULL_FORWARD && FULL_WEIGHT && FULL_BIAS)
+    	        	fc(temp_input, temp_weight, temp_bias, data+offset[j][4], params[j], sparams[j]);
+    	        else
+    	        	fc(data+offset[j][0], data+offset[j][1], data+offset[j][3], data+offset[j][4], params[j], sparams[j]);
     	        break;
     	        
        		case 7:  
@@ -197,7 +206,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 			case 0: 
 				if(CONV_BACKWARD){
 					printf("conv_outdiff_q : ");
-					quantize(data+offset[j][5], 24*24*params[j][1]*img_num, &sparams[j][2], true);
+					quantize_backward(data+offset[j][5], 24*24*params[j][1]*img_num, &sparams[j][2], true);
 				}
 
                	if(SHOW_BATCH_INDIFF)
@@ -245,7 +254,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 			case 1: 
 				if(BATCH_BACKWARD){
 					printf("batch_outdiff_q : ");
-					quantize(data+offset[j][5], params[j][1]*params[j][4]*params[j][5]*img_num, &sparams[j][2], true);
+					quantize_backward(data+offset[j][5], params[j][1]*params[j][4]*params[j][5]*img_num, &sparams[j][2], true);
 				}
 
                	if(SHOW_SCALE_INDIFF)
@@ -264,7 +273,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 			case 2:  
 				if(SCALE_BACKWARD){
 					printf("scale_outdiff_q : ");
-					quantize(data+offset[j][5], params[j][1]*params[j][4]*params[j][5]*img_num, &sparams[j][2], true);
+					quantize_backward(data+offset[j][5], params[j][1]*params[j][4]*params[j][5]*img_num, &sparams[j][2], true);
 				}
 
                	if(SHOW_RELU_INDIFF)
@@ -358,7 +367,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 						printf("fc1_outdiff_q : ");
 					else
 						printf("fc2_outdiff_q : ");
-					quantize(data+offset[j][5], params[j][1]*img_num, &sparams[j][2], true);
+					quantize_backward(data+offset[j][5], params[j][1]*img_num, &sparams[j][2], true);
 				}
 
               	if(SHOW_FULL_INDIFF && j == 5) 

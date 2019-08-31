@@ -31,7 +31,7 @@ int input_qt(float input, int s_in, int *larger, int *smaller, int *all, bool st
     return  tmp_int;
 }
 
-void quantize(float *to, int size, int *step, bool if_stochastic)
+void quantize_backward(float *to, int size, int *step, bool if_stochastic)
 {
 	int larger = 0;
 	int smaller = 0;
@@ -47,4 +47,19 @@ void quantize(float *to, int size, int *step, bool if_stochastic)
 	printf("%d %f %f\n", *step, 1.0*larger/all, 1.0*smaller/all); 
 }
 
+void quantize_forward(float *from, float *to, int size, int *step, bool if_stochastic)
+{
+	int larger = 0;
+	int smaller = 0;
+	int all = 0;
+
+  	for(int i = 0; i<size; i++)
+    	to[i] = input_qt(from[i], *step, &larger, &smaller, &all, if_stochastic);
+
+	if(1.0*larger/all > 0)
+		*step -= 1;
+	if(1.0*smaller/all >= 1)
+		*step += 1; 
+	printf("%d %f %f\n", *step, 1.0*larger/all, 1.0*smaller/all); 
+}
 

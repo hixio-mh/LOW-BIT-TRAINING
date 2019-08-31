@@ -68,10 +68,11 @@ int input_qt(float input, int s_in, int *larger, int *smaller, int *all, bool st
 
 void memset_float(float *to, int size);
 
-void quantize(float *to, int size, int *step, bool if_stochastic); 
+void quantize_backward(float *to, int size, int *step, bool if_stochastic); 
 
+void quantize_forward(float *from, float *to, int size, int *step, bool if_stochastic);
 
-void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate, int epoch, int decay);
+void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate, int epoch, int decay, float *temp_input, float *temp_weight, float *temp_bias);
 
 
 void conv(float *input, float *weights, float *tmp, float *output, int *params, int *sparams);
