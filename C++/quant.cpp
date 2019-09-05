@@ -9,17 +9,20 @@ void memset_float(float* to, int size)
     	to[i] = 0;
 }
 
-int input_qt(float input, int s_in, int *larger, int *smaller, int *all, bool stochastic)
+float input_qt(float input, int s_in, int *larger, int *smaller, int *all, bool stochastic)
 {
 	float rand_num = 0;
-	if(stochastic)
-		rand_num = rand() % 1024 / 1024; 
-
-	int tmp_int = floor(input * (1<<s_in) + rand_num);
+	float tmp_int;
+	if(stochastic){
+		rand_num = rand() % 4096 / 4096; 
+		tmp_int = floor(input * (1<<s_in) + rand_num);
+	}
+	else
+		tmp_int = floor(input * (1<<s_in) + 0.5);
    	 		
-    if(tmp_int > 127 || tmp_int < -128)
+    if(tmp_int >= 128 || tmp_int < -128)
 		*larger += 1;
-    if(tmp_int < 63 && tmp_int > -64)
+    if(tmp_int >= 64 || tmp_int < -64)
         *smaller += 1;
 
     if(tmp_int > 127)
@@ -28,7 +31,7 @@ int input_qt(float input, int s_in, int *larger, int *smaller, int *all, bool st
        	tmp_int = -128;
 
 	*all += 1;
-    return  tmp_int;
+    return  1.0 * tmp_int / (1<<s_in);
 }
 
 void quantize_backward(float *to, int size, int *step, bool if_stochastic)
@@ -42,9 +45,10 @@ void quantize_backward(float *to, int size, int *step, bool if_stochastic)
 
 	if(1.0*larger/all > 0)
 		*step -= 1;
-	if(1.0*smaller/all >= 1)
+	if(1.0*smaller/all <= 0)
 		*step += 1; 
-	printf("%d %f %f\n", *step, 1.0*larger/all, 1.0*smaller/all); 
+	if(SHOW_QUANTIZE_RESULT)
+		printf("%d %f %f\n", *step, 1.0*larger/all, 1.0*smaller/all); 
 }
 
 void quantize_forward(float *from, float *to, int size, int *step, bool if_stochastic)
@@ -58,8 +62,9 @@ void quantize_forward(float *from, float *to, int size, int *step, bool if_stoch
 
 	if(1.0*larger/all > 0)
 		*step -= 1;
-	if(1.0*smaller/all >= 1)
+	if(1.0*smaller/all <= 0)
 		*step += 1; 
-	printf("%d %f %f\n", *step, 1.0*larger/all, 1.0*smaller/all); 
+	if(SHOW_QUANTIZE_RESULT)
+		printf("%d %f %f\n", *step, 1.0*larger/all, 1.0*smaller/all); 
 }
 

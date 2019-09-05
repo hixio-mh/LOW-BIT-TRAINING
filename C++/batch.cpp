@@ -45,7 +45,7 @@ void batch(float *input, float *temp, float *output, int *params, int *sparams){
 	        		}
     	 		}
     		mean[p] = sum[p]/x_dim/y_dim/img_num;
-
+			//printf("%d %f\n", p, mean[p]);
        		sum[p] = 0;
 			for(int y = 0; y < y_dim; y++)
 				for(int x = 0; x < x_dim; x++)
@@ -61,7 +61,7 @@ void batch(float *input, float *temp, float *output, int *params, int *sparams){
 					}
 				}	
 			var[p] = sum[p]/x_dim/y_dim/img_num;
-  
+  			//printf("%d %f\n", p, var[p]);
       		float e = 1e-5;
 			factor[p] = sqrt(var[p] + e);
 

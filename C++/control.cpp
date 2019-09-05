@@ -35,15 +35,34 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 					quantize_forward(data+offset[j][1], temp_weight, params[j][0]*params[j][1]*params[j][8]*params[j][8], &sparams[j][4], false);
 				}
 
+				if(0){
+                	FILE* conv_in_w = fopen("conv_in_w.txt","w");
+                	for(int p = 0; p < 5; p++)
+                		for(int l = 0; l < 5; l++)
+                			for(int m = 0; m < 1; m++)
+                				for(int n = 0; n < 20; n++){	
+									fprintf(conv_in_w, "%.6f\n", (float)(*(data + offset[j][1] + p*5+l+n*25))); 
+								}
+				}
+								
              	if(SHOW_CONV_IN) 
              	{  
 					printf("conv_input:\n");
                 	for(int y = 0; y < 28; y++) 
                 	{
-						for(int x = 0; x < 28; x++) 
+						for(int x = 0; x < 28; x++) {
                 			printf(" %f", (float)(*(data+offset[j][0]+(y*28+x)*img_num)));
+                		}
                 		printf("\n"); 
                 	}
+                	
+                	FILE* conv_in = fopen("conv_in.txt","w");
+                	for(int p = 0; p < 16; p++)
+                		for(int l = 0; l < 28; l++)
+                			for(int m = 0; m < 28; m++)
+                				for(int n = 0; n < 1; n++){	
+									fprintf(conv_in, "%.6f\n", (float)(*(data+offset[j][0]+(l*28+m)*img_num+p))); 
+								}
               	}
 				if(CONV_FORWARD && CONV_WEIGHT)
     	        	conv(temp_input, temp_weight, tmp, data+offset[j][4], params[j], sparams[j]);
@@ -63,10 +82,19 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 	for(int y = 0; y < 24; y++) 
                		{ 
 						for(int x = 0; x < 24; x++) 
-                			printf(" %f", (float)(*(data+offset[j][0]+((y*24+x)*20)*img_num)));
+                			printf(" %f", (float)(*(temp_input+((y*24+x)*20+18)*img_num+14)));
                 		printf("\n");
 					}
+					
+					FILE* batch_in_q = fopen("batch_in_q.txt","w");
+                	for(int p = 0; p < 16; p++)
+                		for(int l = 0; l < 24; l++)
+                			for(int m = 0; m < 24; m++)
+                				for(int n = 0; n < 20; n++){	
+									fprintf(batch_in_q, "%.6f\n", (float)(*(temp_input+((l*24+m)*20+n)*img_num+p))); 
+								}
 				}
+                
 				if(BATCH_FORWARD)
     	        	batch(temp_input, wg+offset[j][1], data+offset[j][4], params[j], sparams[j]);
     	        else
@@ -98,6 +126,14 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 			printf(" %f", (float)(*(data+offset[j][0]+((y*24+x))*20*img_num)));
                 		printf("\n"); 
         			}
+        			
+					FILE* scale_in = fopen("scale_in.txt","w");
+                	for(int p = 0; p < 16; p++)
+                		for(int l = 0; l < 24; l++)
+                			for(int m = 0; m < 24; m++)
+                				for(int n = 0; n < 20; n++){	
+									fprintf(scale_in, "%.6f\n", (float)(*(data+offset[j][0]+((l*24+m)*20+n)*img_num+p))); 
+								}
 				}
 				if(SCALE_FORWARD && SCALE_WEIGHT && SCALE_BIAS)
     	        	scale(temp_input, temp_weight, temp_bias, data+offset[j][4], params[j], sparams[j]);
@@ -115,6 +151,14 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 			printf(" %f", (float)(*(data+offset[j][0]+((y*24+x)*20)*img_num)));
                 		printf("\n"); 
     	  			} 
+    	  			
+    	  			FILE* relu_in = fopen("relu_in.txt","w");
+                	for(int p = 0; p < 16; p++)
+                		for(int l = 0; l < 24; l++)
+                			for(int m = 0; m < 24; m++)
+                				for(int n = 0; n < 20; n++){	
+									fprintf(relu_in, "%.6f\n", (float)(*(data+offset[j][0]+((l*24+m)*20+n)*img_num+p))); 
+								}
 				}
 
                	relu(data+offset[j][0], data+offset[j][4], params[j], sparams[j]);
@@ -173,6 +217,14 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 				printf(" %f", (float)(*(data+offset[j][0]+((y*12+x)*20)*img_num)));
                				printf("\n"); 
                			}
+               			
+    	  				FILE* fc1_in = fopen("fc1_in.txt","w");
+                		for(int p = 0; p < 16; p++)
+                			for(int l = 0; l < 12; l++)
+                				for(int m = 0; m < 12; m++)
+                					for(int n = 0; n < 20; n++){	
+										fprintf(fc1_in, "%.6f\n", (float)(*(data+offset[j][0]+((l*12+m)*20+n)*img_num+p))); 
+									}
 					}
 					if(j == 6) 
 					{ 
@@ -180,6 +232,13 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 						for(int y = 0; y < 100; y++) 
 							printf(" %f", (float)(*(data+offset[j][0]+(y*img_num)))); 
 					}
+					
+    	  			FILE* fc1_in = fopen("fc2_in.txt","w");
+                	for(int p = 0; p < 16; p++)
+                		for(int l = 0; l < 100; l++){	
+							fprintf(fc1_in, "%.6f\n", (float)(*(data+offset[j][0]+l*img_num+p))); 
+						}
+									
 				} 
 				if(FULL_FORWARD && FULL_WEIGHT && FULL_BIAS)
     	        	fc(temp_input, temp_weight, temp_bias, data+offset[j][4], params[j], sparams[j]);
@@ -194,6 +253,12 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 	for(int i = 0; i < 10; i++) 
                 		printf(" %f", (float)(*(data+offset[j][0]+i*img_num)));
                 	printf("\n");  
+                	
+    	  			FILE* fc1_in = fopen("softmax_in.txt","w");
+                	for(int p = 0; p < 16; p++)
+                		for(int l = 0; l < 10; l++){	
+							fprintf(fc1_in, "%.6f\n", (float)(*(data+offset[j][0]+l*img_num+p))); 
+						}
 				}
     	        softmax(data+offset[j][0], data+offset[j][4], params[j], sparams[j], data+offset[j][2], (float*)(wg+offset[j][1]));
        	}
@@ -226,6 +291,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
                 	for(int y = 0; y < 20; y++) 
                 		printf(" %f", (float)(*(data+offset[j][1]+(2*5+1)+y*25)));
                 	printf("\n");
+                	
 				}
 
 			    conv_back(data + offset[j][5], data+offset[j][1], data+offset[j][2], tmp, params[j], sparams[j]);
@@ -361,7 +427,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 			case 5: 
 				break;
 
-			case 6: 
+			case 6: 	
 				if(FULL_BACKWARD){
 					if(j == 5)
 						printf("fc1_outdiff_q : ");
@@ -369,21 +435,32 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 						printf("fc2_outdiff_q : ");
 					quantize_backward(data+offset[j][5], params[j][1]*img_num, &sparams[j][2], true);
 				}
-
-              	if(SHOW_FULL_INDIFF && j == 5) 
+					
+             	if(SHOW_FULL_INDIFF && j == 6) 
               	{  
 					printf("full2_indif:\n");
                 	for(int x = 0; x < 100; x++) 
                 		printf(" %lf", (float)(*(data+offset[j][5]+x*img_num)));
                		printf("\n"); 
+               		
+               		FILE* relu_in = fopen("softmax_indiff_q","w");
+                	for(int p = 0; p < 16; p++)
+                		for(int l = 0; l < 10; l++)
+							fprintf(relu_in, "%.6f\n", (float)(*(data+offset[j][5]+l*img_num+p)));
                	}
-
+				
                 if(SHOW_SOFTMAX_INDIFF && j == 6) 
              	{   
 					printf("softmax_indif:\n");
 					for(int x = 0; x < 10; x++ ) 
                 		printf(" %lf", (float)(*(data+offset[j][5]+x*img_num)));
                		printf("\n"); 
+               		
+    	  			FILE* relu_in = fopen("softmax_indiff.txt","w");
+                	for(int p = 0; p < 16; p++)
+                		for(int l = 0; l < 10; l++)
+							fprintf(relu_in, "%.6f\n", (float)(*(data+offset[j][5]+l*img_num+p)));
+               		
 				}
 
         		if(j == 5){

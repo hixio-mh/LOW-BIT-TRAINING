@@ -41,7 +41,7 @@ double normdis(double mu, double sigma)
 
 int main(int argc, char const *argv[])
 {   
- 
+ 	int flag_success = 1;
     int epoch = 100;
     int decay = 2000;
     float lr = 0.01;
@@ -53,7 +53,7 @@ int main(int argc, char const *argv[])
 
     for(int i = 0; i<epoch; i++)
     {
-       float lrt =  0.01 * cos(i*PI/2/100);
+       float lrt =  0.005 * cos(i*PI/2/100);
        rates[i] = 1/lrt;
     }
 
@@ -90,8 +90,12 @@ int main(int argc, char const *argv[])
 		memcpy(params[i], (int*)ins+30*i, 16*4);
 		memcpy(offset[i], (int*)ins+30*i+16, 10*4);
 		memcpy(connect[i], (int*)ins+30*i+26, 4*4);
-		for(int j = 0; j<8; j++)
-			sparams[i][j] = 4;
+		sparams[i][0] = 5;
+		if(i == 0)
+			sparams[i][0] = 8;
+		sparams[i][2] = 12;
+		sparams[i][4] = 8;
+		sparams[i][5] = 10;
 	}
 	 
     float sample;
@@ -225,14 +229,17 @@ int main(int argc, char const *argv[])
 					{
 						unsigned char tmp;
 						datafile.read((char*)&tmp, 1); 
-           				data[(y*28+x)*img_num+im] = float(tmp)/256;   
+           				data[(y*28+x)*img_num+im] = (float(tmp) - 128)/128;   
          			}
      			idx++;
      			if(idx%img_num == 0)
      			{
 					if(TEST_MODE){
-						for (int e = 0; e<3; e++)
-							training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_input, temp_weight, temp_bias);
+						if(flag_success == 1 && idx%16 == 0){
+							for (int e = 0; e<1; e++)
+								training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_input, temp_weight, temp_bias);
+							flag_success = 2;
+						}
 					}
 					else
 						training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_input, temp_weight, temp_bias);
@@ -251,10 +258,11 @@ int main(int argc, char const *argv[])
 					if(PRINT_LOSS)
 						printf("************************epoch:%d batch:%d loss:%f\n", ep, idx/img_num, loss);
  
-					fprintf(outloss,"\n"); 
-					fprintf(outloss,"epoch:%d batch:%d loss:%f\n", ep, idx/img_num, loss); 
+					//fprintf(outloss,"\n"); 
+					//fprintf(outloss,"epoch:%d batch:%d loss:%f\n", ep, idx/img_num, loss); 
 
-					if(SHOW_SOFTMAX_OUT){
+					if(SHOW_SOFTMAX_OUT){			
+						//FILE* softmax_out = fopen("softmax_out.txt","w");	
 						for(int i = 0; i<img_num; i++)
 						{
 							loss = 0;
@@ -262,8 +270,9 @@ int main(int argc, char const *argv[])
 							{ 
 								if(label[j*img_num+i] == 1)
 								{
-									loss+= -log(res[j*img_num+i]);
-									printf("%d : %f\n", i, loss); 
+									loss += -log(res[j*img_num+i]);
+									//fprintf(softmax_out, "%.6f\n", -log(res[j*img_num+i]));
+									printf("%d : %f\n", i, -log(res[j*img_num+i])); 
 								}
 							}
 						}
