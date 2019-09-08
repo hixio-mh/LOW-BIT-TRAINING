@@ -18,10 +18,10 @@
 #define FULL_FORWARD 1
 
 // Quantize backward indiff
-#define FULL_BACKWARD 0
-#define SCALE_BACKWARD 0 
-#define BATCH_BACKWARD 0 
-#define CONV_BACKWARD 0 
+#define FULL_BACKWARD 1
+#define SCALE_BACKWARD 1 
+#define BATCH_BACKWARD 1
+#define CONV_BACKWARD 1 
 
 // Quantize weight and bias
 #define CONV_WEIGHT 1
@@ -64,7 +64,7 @@
 #define SHOW_SCALE_WEIGHT 0
 #define SHOW_SCALE_BIAS 0
 
-#define SHOW_QUANTIZE_RESULT 1
+#define SHOW_QUANTIZE_RESULT 0
 
 float input_qt(float input, int s_in, int *larger, int *smaller, int *all, bool stochastic);
 
@@ -74,7 +74,7 @@ void quantize_backward(float *to, int size, int *step, bool if_stochastic);
 
 void quantize_forward(float *from, float *to, int size, int *step, bool if_stochastic);
 
-void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate, int epoch, int decay, float *temp_input, float *temp_weight, float *temp_bias);
+void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate, int epoch, int decay, float *temp_weight, float *temp_bias, int flag);
 
 
 void conv(float *input, float *weights, float *tmp, float *output, int *params, int *sparams);

@@ -16,21 +16,33 @@ def quantize(X, target_overflow_rate, bits, step, training, stochastic=False):
         X = tf.floor(tf.clip_by_value(X / step, -limit, limit-1) + 0.50000) * step
         return X, lambda dy : dy
 
+    if training:
+        step_update = update_step(X, target_overflow_rate, bits, step)
+        return identity(X), step_update
+    else:
+        return identity(X), step
+
+
+def quantize_back(X, target_overflow_rate, bits, step, training, stochastic=True):
+
+    assert 1 <= bits <= 32, 'invalid value for bits: %d' % bits
+    if bits == 32:
+        return X
+
+    limit = 2.0 ** (bits - 1)
+
+    X = tf.cast(X, dtype=tf.float32)
+
     @tf.custom_gradient
     def stochastic_identity(X):
-        X = tf.floor(tf.clip_by_value(X / step + tf.random_uniform(
-            tf.shape(X), 0, 1), -limit, limit-1)) * step
-        return X, lambda dy : dy
+        return X, lambda dy : tf.floor(tf.clip_by_value(dy / step, -limit, limit-1) + 0.50000) * step
+    #tf.floor(tf.clip_by_value(dy / step + tf.random_uniform(tf.shape(X), 0, 1), -limit, limit-1)) * step
 
     if training:
-        tf.add_to_collection(tf.GraphKeys.UPDATE_OPS, update_step(
-            X, target_overflow_rate, bits, step))
-
-    if not stochastic:
-        return identity(X)
+        step_update = update_step(X, target_overflow_rate, bits, step)
+        return stochastic_identity(X), step_update
     else:
-        #return stochastic_identity(X)
-        return identity(X)
+        return stochastic_identity(X), step
 
 
 def overflow_rate(X, bits, step):
@@ -58,7 +70,7 @@ def update_step(X, target_overflow_rate, bits, step):
         )
     )
 
-    return tf.assign(step, step * multiplier)
+    return step * multiplier
 
 
 class Layer_q:
@@ -72,19 +84,6 @@ class Layer_q:
         self.X = X
         self.y = self.X
         return self.y
-
-    def backward(self, grad, stochastic):
-        '''
-        Default backward propagation.
-        '''
-        grad = tf.gradients(self.y, self.X, grad)[0]
-        return grad
-
-    def grads_and_vars(self):
-        '''
-        Default grads_and_vars.
-        '''
-        return []
 
     def info(self):
         '''
@@ -143,34 +142,21 @@ class Conv2d_q(Layer_q):
     def forward(self, X):
         self.X = X
 
-        self.Xq = quantize(self.X, self.target_overflow_rate,
+        self.Xq, self.X_step = quantize(self.X, self.target_overflow_rate,
             self.bits, self.X_step, self.train)
-        self.Wq = quantize(self.W, self.target_overflow_rate,
+        self.Wq, self.W_step = quantize(self.W, self.target_overflow_rate,
             self.bits, self.W_step, self.train)
         self.y = tf.nn.conv2d(self.Xq, self.Wq, self.strides, self.padding)
 
         if self.use_bias:
-            self.bq = quantize(self.b, self.target_overflow_rate,
+            self.bq, self.b_step = quantize(self.b, self.target_overflow_rate,
                 self.bits, self.b_step, self.train)
             self.y = self.y + self.bq
 
-        return self.y
+        self.y, self.grad_step = quantize_back(self.y, self.target_overflow_rate,
+                self.bits, self.grad_step, self.train)
 
-
-    def backward(self, grad, stochastic):
-        self.gradq = quantize(grad, self.target_overflow_rate,
-            self.bits, self.grad_step, self.train, stochastic=stochastic)
-        self.dW = tf.gradients(self.y, self.W, self.gradq)[0] + 2 * self.weight_decay * self.W
-
-        if self.use_bias:
-            self.db = tf.gradients(self.y, self.b, self.gradq)[0]
-        return tf.gradients(self.y, self.X, self.gradq)[0]
-
-    def grads_and_vars(self):
-        if self.use_bias:
-            return [(self.dW, self.W), (self.db, self.b)]
-        else:
-            return [(self.dW, self.W)]
+        return self.y, self.W, self.X_step, self.W_step, self.Wq
 
     def info(self):
         return '%d bits conv2d: %dx%dx%d stride %dx%d pad %s weight_decay %f' % (
@@ -241,33 +227,21 @@ class Dense_q(Layer_q):
     def forward(self, X):
         self.X = X
 
-        self.Xq = quantize(self.X, self.target_overflow_rate,
+        self.Xq, self.X_step = quantize(self.X, self.target_overflow_rate,
             self.bits, self.X_step, self.train)
-        self.Wq = quantize(self.W, self.target_overflow_rate,
+        self.Wq, self.W_step = quantize(self.W, self.target_overflow_rate,
             self.bits, self.W_step, self.train)
         self.y = tf.matmul(self.Xq, self.Wq)
 
         if self.use_bias:
-            self.bq = quantize(self.b, self.target_overflow_rate,
+            self.bq, self.b_step = quantize(self.b, self.target_overflow_rate,
                 self.bits, self.b_step, self.train)
             self.y = self.y + self.bq
 
-        return self.y
+        self.y, self.grad_step = quantize_back(self.y, self.target_overflow_rate,
+                self.bits, self.grad_step, self.train)
 
-    def backward(self, grad, stochastic):
-        self.gradq = quantize(grad, self.target_overflow_rate,
-            self.bits, self.grad_step, self.train, stochastic=stochastic)
-        self.dW = tf.gradients(self.y, self.W, self.gradq)[0] + 2 * self.weight_decay * self.W
-
-        if self.use_bias:
-            self.db = tf.gradients(self.y, self.b, self.gradq)[0]
-        return tf.gradients(self.y, self.X, self.gradq)[0]
-
-    def grads_and_vars(self):
-        if self.use_bias:
-            return [(self.dW, self.W), (self.db, self.b)]
-        else:
-            return [(self.dW, self.W)]
+        return self.y, self.W, self.b
 
     def info(self):
         return '%d bits dense: %dx%d weight_decay %f' % (
@@ -284,17 +258,6 @@ class Sequential_q(Layer_q):
             X = layer.forward(X)
         self.y = X
         return self.y
-
-    def backward(self, grad, stochastic):
-        for layer in reversed(self.layers):
-            grad = layer.backward(grad, stochastic)
-        return grad
-
-    def grads_and_vars(self):
-        res = []
-        for layer in self.layers:
-            res += layer.grads_and_vars()
-        return res
 
     def info(self):
         return '\n\t'.join(['Sequential layer:'] +
@@ -326,7 +289,7 @@ class Normalization_q(Layer_q):
     def forward(self, X):
         self.X = X
 
-        self.Xq = quantize(self.X, self.target_overflow_rate,
+        self.Xq, self.X_step = quantize(self.X, self.target_overflow_rate,
             self.bits, self.X_step, self.train)
 
         rank = X._rank()
@@ -354,12 +317,11 @@ class Normalization_q(Layer_q):
             self.X_var = self.X_var_running
 
         self.y = (self.Xq - self.X_mean) / ((self.X_var + self.eps) ** 0.5)
-        return self.y
 
-    def backward(self, grad, stochastic):
-        self.gradq = quantize(grad, self.target_overflow_rate,
-            self.bits, self.grad_step, self.train, stochastic=stochastic)
-        return tf.gradients(self.y, self.X, self.gradq)[0]
+        self.y, self.grad_step = quantize_back(self.y, self.target_overflow_rate,
+                self.bits, self.grad_step, self.train)
+
+        return self.y
 
 
 class Rescale_q(Layer_q):
@@ -399,32 +361,21 @@ class Rescale_q(Layer_q):
         else:
             assert False, 'Invalid rank %d' % rank
 
-        self.Xq = quantize(self.X, self.target_overflow_rate,
+        self.Xq, self.X_step = quantize(self.X, self.target_overflow_rate,
             self.bits, self.X_step, self.train)
-        self.gq = quantize(self.gamma, self.target_overflow_rate,
+        self.gq, self.g_step = quantize(self.gamma, self.target_overflow_rate,
             self.bits, self.g_step, self.train)
         self.y = self.Xq * self.gq
 
         if self.use_beta:
-            self.bq = quantize(self.beta, self.target_overflow_rate,
+            self.bq, self.b_step = quantize(self.beta, self.target_overflow_rate,
                 self.bits, self.b_step, self.train)
-            self.y += self.bq
+            self.y = self.y + self.bq
 
-        return self.y
+        self.y, self.grad_step = quantize_back(self.y, self.target_overflow_rate,
+                self.bits, self.grad_step, self.train)
 
-    def backward(self, grad, stochastic):
-        self.gradq = quantize(grad, self.target_overflow_rate,
-            self.bits, self.grad_step, self.train, stochastic=stochastic)
-        self.dgamma = tf.gradients(self.y, self.gamma, self.gradq)[0] + 2 * self.weight_decay * self.gamma
-        if self.use_beta:
-            self.dbeta = tf.gradients(self.y, self.beta, self.gradq)[0]
-        return tf.gradients(self.y, self.X, self.gradq)[0]
-
-    def grads_and_vars(self):
-        if self.use_beta:
-            return [(self.dgamma, self.gamma), (self.dbeta, self.beta)]
-        else:
-            return [(self.dgamma, self.gamma)]
+        return self.y, self.gamma, self.beta
 
 
 class BatchNorm_q(Sequential_q):

@@ -182,7 +182,7 @@ void bias_scale(float *bias, float *outdiff, float * moment, int *params, int *s
 				for(int x = 0; x < x_dim; x++)
 				{
  					memcpy(out_buf[p] , outdiff + ((y*x_dim+x)*inChannel+i*PARA+p)*img_num, img_num*4);
-            		for(int im = 0 ;im<img_num; im++)
+            		for(int im = 0; im<img_num; im++)
             			sum[p] += out_buf[p][im];
  		 		}
 

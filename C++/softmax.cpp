@@ -76,7 +76,10 @@ void softmax(float *input, float *output, int *params, int *sparams, float *diff
 				in_diffbuf[p][im] = chn[p][im]/sum[im];
 				resbuf[p][im] = chn[p][im]/sum[im];
 				in_diffbuf[p][im] -= out_buf[p][im];
-				diff[(i*PARA+p)*img_num +im] = in_diffbuf[p][im]/img_num;
+				if(TEST_MODE)
+					diff[(i*PARA+p)*img_num +im] = in_diffbuf[p][im];
+				else
+					diff[(i*PARA+p)*img_num +im] = in_diffbuf[p][im]/16;
 			}
 			
 		}

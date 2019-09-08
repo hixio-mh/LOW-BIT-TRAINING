@@ -62,7 +62,7 @@ int main(int argc, char const *argv[])
     FILE* outs;
     outs = fopen("outputs.txt","w");
     FILE* _data;
-    _data = fopen("data.txt","w");
+    _data = fopen("data.txt","r");
 
     FILE* _lable;
     FILE* weight1;
@@ -91,11 +91,12 @@ int main(int argc, char const *argv[])
 		memcpy(offset[i], (int*)ins+30*i+16, 10*4);
 		memcpy(connect[i], (int*)ins+30*i+26, 4*4);
 		sparams[i][0] = 5;
-		if(i == 0)
-			sparams[i][0] = 8;
-		sparams[i][2] = 12;
-		sparams[i][4] = 8;
-		sparams[i][5] = 10;
+		if(TEST_MODE)
+			sparams[i][2] = 5;
+		else	
+			sparams[i][2] = 15;
+		sparams[i][4] = 5;
+		sparams[i][5] = 5;
 	}
 	 
     float sample;
@@ -131,9 +132,15 @@ int main(int argc, char const *argv[])
        		case 2:
 				w_num =  params[i][1];
 				for(int j = 0; j < w_num; j++)
-				{
-					data[offset[i][1]+j] = 1;  
-					data[offset[i][3]+j] = 0;
+				{	
+					if(TEST_MODE){
+					    data[offset[i][1]+j] = 0.35;  
+					    data[offset[i][3]+j] = 0.05;
+					}
+					else{
+						data[offset[i][1]+j] = 1;  
+					    data[offset[i][3]+j] = 0;	
+					}
 				}
 				break;
 
@@ -175,7 +182,10 @@ int main(int argc, char const *argv[])
 			 	}
 
 				for(int j = 0;j < params[i][1]; j++) 
-					data[offset[i][3]+j] = 0.1;
+					if(TEST_MODE) 
+						data[offset[i][3]+j] = 0.01;
+					else
+						data[offset[i][3]+j] = 0.1;
 				
 				printf("\nfull: finish \n");
 				break;     
@@ -235,15 +245,28 @@ int main(int argc, char const *argv[])
      			if(idx%img_num == 0)
      			{
 					if(TEST_MODE){
+						int last = 1;
 						if(flag_success == 1 && idx%16 == 0){
-							for (int e = 0; e<1; e++)
-								training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_input, temp_weight, temp_bias);
+							for (int e = 0; e<last; e++){
+								_data = fopen("data.txt","r");
+								for (int mm = 0; mm<16; mm++)
+									for (int nn = 0; nn<28; nn++)
+										for (int ee = 0; ee<28; ee++){
+											float fVal = 0;
+											fscanf(_data, "%f", &fVal);
+											data[(nn*28+ee)*img_num+mm] = fVal;						
+										}
+								if(e == last - 1)
+									training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_weight, temp_bias, 1);
+								else
+									training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_weight, temp_bias, 0);
+							}
 							flag_success = 2;
+							printf("Finished!");
 						}
 					}
 					else
-						training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_input, temp_weight, temp_bias);
-
+						training(data, wg, fp, (int*)ins, (int*)sparams, rates[ep], epoch, decay, temp_weight, temp_bias, 0);
      				float loss = 0;     
 
 					for(int i = 0; i<img_num;i++)
