@@ -58,7 +58,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 									fprintf(conv_in, "%.6f\n", (float)(*(data+offset[j][0]+(l*28+m)*img_num+p))); 
 				}
 
-				if(1 && flag == 1){
+				if(0 && flag == 1){
                 	FILE* conv_in_w = fopen("conv_w_q.txt","w");
                 	for(int p = 0; p < 5; p++)
                 		for(int l = 0; l < 5; l++)
@@ -85,7 +85,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
 					}
 				}
 				
-       			if(1 && flag == 1){
+       			if(0 && flag == 1){
 					FILE* batch_in_q = fopen("batch_in.txt","w");
 					for(int p = 0; p < 16; p++)
 						for(int l = 0; l < 24; l++)
@@ -116,7 +116,7 @@ void training(float *data, float *wg, float *fp, int *setting, int *sp, int rate
         			}
 				}
 				
-				if(1 && flag == 1){
+				if(0 && flag == 1){
 					FILE* scale_in = fopen("scale_in.txt","w");
 					for(int p = 0; p < 16; p++)
 						for(int l = 0; l < 24; l++)

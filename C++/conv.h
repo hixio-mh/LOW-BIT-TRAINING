@@ -12,23 +12,23 @@
 #define moments (int)4294967296 
 
 // Quantize forward output
-#define CONV_FORWARD 1
-#define BATCH_FORWARD 1
-#define SCALE_FORWARD 1 
-#define FULL_FORWARD 1
+#define CONV_FORWARD 0
+#define BATCH_FORWARD 0 
+#define SCALE_FORWARD 0 
+#define FULL_FORWARD 0 
 
 // Quantize backward indiff
-#define FULL_BACKWARD 1
-#define SCALE_BACKWARD 1 
-#define BATCH_BACKWARD 1
-#define CONV_BACKWARD 1 
+#define FULL_BACKWARD 0 
+#define SCALE_BACKWARD 0 
+#define BATCH_BACKWARD 0 
+#define CONV_BACKWARD 0 
 
 // Quantize weight and bias
-#define CONV_WEIGHT 1
-#define SCALE_WEIGHT 1 
-#define SCALE_BIAS 1  
-#define FULL_WEIGHT 1 
-#define FULL_BIAS 1
+#define CONV_WEIGHT 0
+#define SCALE_WEIGHT 0 
+#define SCALE_BIAS 0  
+#define FULL_WEIGHT 0 
+#define FULL_BIAS 0
 
 // Show debug information
 #define TEST_MODE 0

@@ -16,15 +16,15 @@ float input_qt(float input, int s_in, int *larger, int *smaller, int *all, bool 
 	if(stochastic){
 		rand_num = rand() % 4096 / 4096; 
 		tmp_int = floor(input * (1<<s_in) + rand_num);
-		if(tmp_int >= 32768 || tmp_int < -32768)
+		if(tmp_int >= 128 || tmp_int < -128)
 			*larger += 1;
-    	if(tmp_int >= 16384 || tmp_int < -16384)
+    	if(tmp_int >= 64 || tmp_int < -64)
         	*smaller += 1;
 
-    	if(tmp_int > 32767)
-       		tmp_int = 32767;
-    	else if (tmp_int < -32768)
-       		tmp_int = -32768;
+    	if(tmp_int > 127)
+       		tmp_int = 127;
+    	else if (tmp_int < -128)
+       		tmp_int = -128;
 
 		*all += 1;
 	}
